@@ -13,7 +13,7 @@ export function Hero() {
           {/* Badge */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>Powered by Claude AI</span>
+            <span>Powered by You and a bit of AI</span>
           </div>
 
           {/* Headline */}
