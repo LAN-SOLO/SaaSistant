@@ -13,60 +13,147 @@ npm run lint       # Run ESLint
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 with App Router, React 19, TypeScript
-- **Styling**: Tailwind CSS v4 with CSS variables (OKLch color space), dark mode support
+- **Framework**: Next.js 16 with App Router, React 19, TypeScript (strict)
+- **Styling**: Tailwind CSS v4 with CSS variables (OKLch color space), dark mode
 - **UI Components**: shadcn/ui + Radix UI primitives + lucide-react icons
-- **Backend**: Supabase (configured via MCP in .mcp.json)
-- **Utilities**: class-variance-authority (CVA) for variants, tailwind-merge + clsx via `cn()`
+- **Backend**: Supabase (Auth, PostgreSQL, Storage)
+- **AI**: Anthropic Claude API via `@anthropic-ai/sdk`
+- **Utilities**: CVA for variants, tailwind-merge + clsx via `cn()`
 
-## Architecture
+## Project Structure
 
-### App Router Structure
-- `app/` - Next.js App Router pages and layouts
-- `components/ui/` - shadcn/ui components (Button, Card, Dialog, Input, etc.)
-- `lib/utils.ts` - Utility functions, primarily `cn()` for class merging
+```
+app/
+├── (auth)/           # Auth pages (login, signup, reset-password)
+├── api/ai/           # AI API routes (expand-idea, generate-outputs)
+├── auth/             # Auth callbacks (callback, signout)
+├── dashboard/        # Protected dashboard routes
+└── page.tsx          # Landing page
 
-### Component Patterns
+components/
+├── ui/               # shadcn/ui base components
+├── auth/             # Auth form components
+├── dashboard/        # Dashboard components
+├── landing/          # Landing page sections
+└── project-wizard/   # 8-step wizard components
 
-**Slot-based identification** - Components use `data-slot` attributes:
-```tsx
-<div data-slot="card" className={cn(...)} />
+lib/
+├── supabase/         # Supabase clients (client, server, middleware)
+├── ai/               # AI integration (expand-idea, generate-outputs)
+└── utils.ts          # cn() utility
 ```
 
-**Composition pattern** - Complex components split into subcomponents:
-```tsx
-<Card>
-  <CardHeader><CardTitle>Title</CardTitle></CardHeader>
-  <CardContent>Content</CardContent>
-</Card>
-```
+## Code Style
 
-**CVA for variants** - Type-safe variant management:
-```tsx
-const buttonVariants = cva(baseStyles, {
-  variants: { variant: {...}, size: {...} },
-  defaultVariants: { variant: "default", size: "default" }
-})
-```
+### TypeScript
+- Use `interface` for objects, `type` for unions
+- Name props as `ComponentNameProps`
+- Avoid `any` - use proper typing
 
-### Path Aliases
-- `@/*` maps to project root (configured in tsconfig.json)
-- `@/components/ui` for UI components
-- `@/lib/utils` for utilities
-
-### Server vs Client Components
+### Components
 - Default to Server Components
-- Add `"use client"` directive only for interactive components (Dialog, DropdownMenu, etc.)
+- Add `"use client"` only for interactivity (useState, event handlers)
+- Use composition pattern for complex components
+- Follow structure: imports → types → constants → component
 
-## Styling
+### Naming
+- Components: PascalCase (`UserMenu`)
+- Files: kebab-case (`user-menu.tsx`)
+- Variables/functions: camelCase (`handleClick`)
+- Booleans: prefix with `is`, `has`, `can` (`isLoading`)
+- Event handlers: `handle*` internally, `on*` for props
 
-- Theme variables defined in `app/globals.css` using OKLch color space
-- Dark mode via `.dark` class and `dark:` Tailwind prefix
-- Use `cn()` utility from `lib/utils.ts` for conditional class merging
+### Styling
+- Use `cn()` for conditional classes
+- Mobile-first responsive design
+- Use theme variables (`bg-background`, `text-foreground`)
+- Order: layout → sizing → spacing → appearance → state
+
+```tsx
+<div className={cn(
+  "flex flex-col",           // Layout
+  "w-full max-w-md",         // Sizing
+  "p-4 gap-2",               // Spacing
+  "bg-card rounded-lg",      // Appearance
+  "hover:shadow-md",         // State
+  className
+)} />
+```
+
+## Authentication
+
+- Browser client: `lib/supabase/client.ts`
+- Server client: `lib/supabase/server.ts`
+- Middleware: `lib/supabase/middleware.ts`
+- Logout MUST be server-side POST route (not client action)
+- Auth callback only needs `exchangeCodeForSession(code)`
 
 ## Database
 
-Supabase integration via:
-- `@supabase/supabase-js` - Client SDK
-- `@supabase/ssr` - Server-side rendering support
-- Environment variables in `.env.local` (not tracked in git)
+Tables with RLS enabled:
+- `profiles` - User data (auto-created on signup)
+- `projects` - Project configurations (JSONB)
+
+```typescript
+const supabase = await createClient()
+const { data } = await supabase.from("projects").select("*")
+```
+
+## AI Integration
+
+```typescript
+// Expand idea
+const response = await fetch("/api/ai/expand-idea", {
+  method: "POST",
+  body: JSON.stringify({ description }),
+})
+
+// Generate outputs
+const response = await fetch("/api/ai/generate-outputs", {
+  method: "POST",
+  body: JSON.stringify(projectConfig),
+})
+```
+
+## Path Aliases
+
+- `@/*` → project root
+- `@/components/ui` → shadcn components
+- `@/lib/supabase/server` → server Supabase client
+
+## Important Patterns
+
+### Error Handling
+```typescript
+try {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error("Failed")
+  return await response.json()
+} catch (error) {
+  console.error("Error:", error)
+  setError(error instanceof Error ? error.message : "Unknown error")
+}
+```
+
+### Form State
+```typescript
+const [isLoading, setIsLoading] = useState(false)
+const [error, setError] = useState<string | null>(null)
+```
+
+### Protected Routes
+- Middleware protects `/dashboard/*`
+- Server components verify user with `supabase.auth.getUser()`
+
+## Documentation
+
+Full documentation in `docs/`:
+- `getting-started.md` - Setup instructions
+- `architecture.md` - Project structure
+- `authentication.md` - Auth implementation
+- `project-wizard.md` - Wizard details
+- `ai-integration.md` - AI API usage
+- `api-reference.md` - All API routes
+- `components.md` - Component reference
+- `deployment.md` - Production deployment
+- `styleguide.md` - Full coding standards
