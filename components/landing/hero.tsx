@@ -27,7 +27,7 @@ export function Hero() {
           {/* Subheadline */}
           <p className="mb-10 text-lg text-muted-foreground md:text-xl max-w-2xl mx-auto">
             Configure your project through an intelligent wizard, get AI-powered recommendations,
-            and generate production-ready initialization prompts for Claude Code.
+            and generate production-ready initialization prompts for Claude Code and Open Code.
           </p>
 
           {/* CTA Buttons */}
